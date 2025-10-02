@@ -5,8 +5,6 @@
         <title>Chat Sams Club</title>
     </head>
     <body onload="pageLoaded()">
-        <!-- Container para o botão de chat -->
-        <div id="button_goes_here"></div>
         <style type='text/css'>
             /* Estilos básicos do botão de chat */
             .embeddedServiceHelpButton .helpButton .uiButton {
@@ -111,10 +109,8 @@
                 
                 // Configurações de responsividade
                 embedded_svc.settings.devMode = false;
-                embedded_svc.settings.targetElement = 'button_goes_here';
                 
                 // Configurações para dispositivos móveis
-                embedded_svc.settings.enableMobileCore = true;
                 embedded_svc.settings.autoOpenPostChat = false;
                 
                 // Textos personalizados
@@ -137,18 +133,15 @@
                 embedded_svc.settings.enabledFeatures = ['LiveAgent'];
                 embedded_svc.settings.entryFeature = 'LiveAgent';
                 
-                // Configurações adicionais de responsividade
-                embedded_svc.settings.chatbotAvatarImgURL = embedded_svc.settings.chatbotAvatarImgURL;
-                
                 // Callback para ajustar o layout em diferentes dispositivos
                 embedded_svc.addEventHandler("onChatRequestSuccess", function(data) {
                     // Função executada quando o chat é carregado com sucesso
-                    adjustChatForMobile();
+                    setTimeout(adjustChatForMobile, 500);
                 });
                 
                 embedded_svc.addEventHandler("onChatEstablished", function(data) {
                     // Função executada quando a conexão do chat é estabelecida
-                    adjustChatForMobile();
+                    setTimeout(adjustChatForMobile, 500);
                 });
 
                 embedded_svc.init(
@@ -187,37 +180,38 @@
                 // Detecta se é dispositivo móvel
                 var isMobile = window.innerWidth <= 768;
                 
+                // Aguarda o chat estar disponível
+                var chatContainer = document.querySelector('.embeddedServiceSidebar');
+                if (!chatContainer) {
+                    // Se o chat ainda não carregou, tenta novamente em 500ms
+                    setTimeout(adjustChatForMobile, 500);
+                    return;
+                }
+                
                 if (isMobile) {
-                    // Ajusta o comportamento do chat em mobile
-                    var chatContainer = document.querySelector('.embeddedServiceSidebar');
-                    if (chatContainer) {
-                        // Adiciona classe para mobile
-                        chatContainer.classList.add('mobile-chat');
-                        
-                        // Previne scroll da página quando chat estiver aberto
-                        document.body.classList.add('chat-open-mobile');
-                        
-                        // Observer para detectar quando o chat é fechado
-                        var observer = new MutationObserver(function(mutations) {
-                            mutations.forEach(function(mutation) {
-                                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                                    var chatVisible = chatContainer.style.display !== 'none' && 
-                                                    !chatContainer.classList.contains('embeddedServiceSidebarMinimized');
-                                    
-                                    if (!chatVisible) {
-                                        document.body.classList.remove('chat-open-mobile');
-                                    } else {
-                                        document.body.classList.add('chat-open-mobile');
-                                    }
+                    // Adiciona classe para mobile
+                    chatContainer.classList.add('mobile-chat');
+                    
+                    // Observer para controlar scroll da página
+                    var observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'attributes') {
+                                var isMinimized = chatContainer.classList.contains('embeddedServiceSidebarMinimized');
+                                var isHidden = chatContainer.style.display === 'none';
+                                
+                                if (isMinimized || isHidden) {
+                                    document.body.classList.remove('chat-open-mobile');
+                                } else {
+                                    document.body.classList.add('chat-open-mobile');
                                 }
-                            });
+                            }
                         });
-                        
-                        observer.observe(chatContainer, { 
-                            attributes: true, 
-                            attributeFilter: ['style', 'class'] 
-                        });
-                    }
+                    });
+                    
+                    observer.observe(chatContainer, { 
+                        attributes: true, 
+                        attributeFilter: ['style', 'class'] 
+                    });
                 }
             }
             
@@ -236,11 +230,17 @@
                     s.setAttribute('src', 'https://carrefourservice.my.salesforce.com/embeddedservice/5.0/esw.min.js');
                     s.onload = function() {
                         initESW(null);
-                        
+                        // Aguarda o chat estar pronto e então ajusta para mobile
+                        setTimeout(function() {
+                            adjustChatForMobile();
+                        }, 2000);
                     };
                     document.body.appendChild(s);
                 } else {
-                    initESW('https://service.force.com')
+                    initESW('https://service.force.com');
+                    setTimeout(function() {
+                        adjustChatForMobile();
+                    }, 2000);
                 }
             }            
         </script>
