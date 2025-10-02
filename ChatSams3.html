@@ -200,23 +200,6 @@
                 embedded_svc.addEventHandler("onChatEstablished", function(data) {
                     // Conexão do chat estabelecida
                     console.log('Conexão do chat estabelecida');
-                    
-                    // Intercepta cliques no botão de fechar após o chat estar estabelecido
-                    setTimeout(function() {
-                        interceptCloseButton();
-                    }, 1000);
-                });
-                
-                embedded_svc.addEventHandler("onChatEndedByChasitor", function(data) {
-                    // Chat foi finalizado pelo usuário
-                    console.log('Chat finalizado pelo usuário - enviando onBack');
-                    sendToReactNative('onBack');
-                });
-                
-                embedded_svc.addEventHandler("onChatEndedByAgent", function(data) {
-                    // Chat foi finalizado pelo agente
-                    console.log('Chat finalizado pelo agente - enviando onBack');
-                    sendToReactNative('onBack');
                 });
 
                 embedded_svc.init(
@@ -296,75 +279,11 @@
                 }
             }
 
-            // Função para enviar comando ao React Native
-            function sendToReactNative(action) {
-                if (window.ReactNativeWebView) {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({ action: action }));
-                } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ReactNativeWebView) {
-                    window.webkit.messageHandlers.ReactNativeWebView.postMessage(JSON.stringify({ action: action }));
-                }
-            }
-
-            // Função para interceptar o botão de fechar do chat
-            function interceptCloseButton() {
-                // Procura por botões de fechar comuns do Salesforce Chat
-                const selectors = [
-                    '.embeddedServiceSidebarHeader .closeButton',
-                    '.embeddedServiceSidebarHeader button[title*="lose"]',
-                    '.embeddedServiceSidebarHeader button[title*="echar"]',
-                    '.embeddedServiceSidebarHeader .slds-button[title*="lose"]',
-                    '.embeddedServiceSidebarForm .closeButton',
-                    '.embeddedServiceSidebarForm button[aria-label*="lose"]',
-                    '.embeddedServiceSidebarForm button[aria-label*="echar"]',
-                    '.embeddedServiceSidebarDialogState .closeButton',
-                    'button.closeButton',
-                    'button[title="Close"]',
-                    'button[title="Fechar"]'
-                ];
-
-                selectors.forEach(function(selector) {
-                    const closeButtons = document.querySelectorAll(selector);
-                    closeButtons.forEach(function(button) {
-                        if (!button.hasAttribute('data-intercepted')) {
-                            button.setAttribute('data-intercepted', 'true');
-                            button.addEventListener('click', function(e) {
-                                console.log('Botão de fechar clicado - enviando onBack para React Native');
-                                sendToReactNative('onBack');
-                                // Permite que o evento continue normalmente para fechar o chat
-                            });
-                        }
-                    });
-                });
-
-                // Intercepta tecla ESC para fechar
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
-                        const chatContainer = document.querySelector('.embeddedServiceSidebarForm');
-                        if (chatContainer && chatContainer.style.display !== 'none') {
-                            console.log('ESC pressionado no chat - enviando onBack');
-                            sendToReactNative('onBack');
-                        }
-                    }
-                });
-
-                // Reexecuta a busca por botões periodicamente (caso sejam criados dinamicamente)
-                setTimeout(interceptCloseButton, 2000);
-            }
-
-            // Detecta quando o chat é fechado para restaurar o scroll e notificar React Native
+            // Detecta quando o chat é fechado para restaurar o scroll
             function observeChatState() {
-                let chatWasOpen = false;
-                
                 const observer = new MutationObserver(function(mutations) {
                     const chatContainer = document.querySelector('.embeddedServiceSidebarForm');
-                    const isVisible = chatContainer && chatContainer.style.display !== 'none' && 
-                                     chatContainer.offsetParent !== null;
-                    
-                    // Se o chat estava aberto e agora foi fechado
-                    if (chatWasOpen && !isVisible) {
-                        console.log('Chat foi fechado - enviando onBack para React Native');
-                        sendToReactNative('onBack');
-                        
+                    if (!chatContainer || chatContainer.style.display === 'none') {
                         if (window.innerWidth <= 768) {
                             document.body.style.overflow = '';
                             document.body.style.position = '';
@@ -372,8 +291,6 @@
                             document.body.style.height = '';
                         }
                     }
-                    
-                    chatWasOpen = isVisible;
                 });
                 
                 observer.observe(document.body, {
@@ -382,42 +299,6 @@
                     attributes: true,
                     attributeFilter: ['style', 'class']
                 });
-                
-                // Também observa mudanças diretas no container do chat
-                const checkChatContainer = () => {
-                    const chatContainer = document.querySelector('.embeddedServiceSidebarForm');
-                    if (chatContainer) {
-                        const containerObserver = new MutationObserver(function(mutations) {
-                            mutations.forEach(function(mutation) {
-                                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                                    const isVisible = chatContainer.style.display !== 'none' && 
-                                                     chatContainer.offsetParent !== null;
-                                    
-                                    if (chatWasOpen && !isVisible) {
-                                        console.log('Chat fechado detectado via container - enviando onBack');
-                                        sendToReactNative('onBack');
-                                    }
-                                    
-                                    chatWasOpen = isVisible;
-                                }
-                            });
-                        });
-                        
-                        containerObserver.observe(chatContainer, {
-                            attributes: true,
-                            attributeFilter: ['style', 'class']
-                        });
-                    }
-                };
-                
-                // Verifica periodicamente se o container existe
-                const intervalId = setInterval(function() {
-                    const chatContainer = document.querySelector('.embeddedServiceSidebarForm');
-                    if (chatContainer) {
-                        checkChatContainer();
-                        clearInterval(intervalId);
-                    }
-                }, 1000);
             }
 
             // Previne zoom no iOS em inputs
@@ -469,18 +350,6 @@
                 preventIOSZoom();
                 observeChatState();
                 
-                // Intercepta o botão de voltar do navegador/WebView
-                window.addEventListener('beforeunload', function(e) {
-                    console.log('Página sendo fechada - enviando onBack');
-                    sendToReactNative('onBack');
-                });
-
-                // Intercepta popstate (botão voltar do navegador)
-                window.addEventListener('popstate', function(e) {
-                    console.log('Botão voltar do navegador - enviando onBack');
-                    sendToReactNative('onBack');
-                });
-                
                 if (!window.embedded_svc) {
                     var s = document.createElement('script');
                     s.setAttribute('src', 'https://carrefourservice.my.salesforce.com/embeddedservice/5.0/esw.min.js');
@@ -491,7 +360,6 @@
                         setTimeout(function() {
                             autoOpenChat();
                             adjustChatSize();
-                            interceptCloseButton(); // Inicia interceptação de botões
                         }, 3000);
                         
                         // Escutar mudanças no tamanho da janela e orientação
@@ -506,7 +374,6 @@
                     setTimeout(function() {
                         autoOpenChat();
                         adjustChatSize();
-                        interceptCloseButton(); // Inicia interceptação de botões
                     }, 3000);
                     window.addEventListener('resize', adjustChatSize);
                     window.addEventListener('orientationchange', function() {
