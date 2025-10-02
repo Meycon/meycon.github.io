@@ -134,25 +134,15 @@
                 }
             }
             
-            /* Botão de ajuda */
+            /* Botão de ajuda - Oculto */
             .embeddedServiceHelpButton {
-                position: fixed !important;
-                bottom: 30px !important;
-                right: 30px !important;
-                z-index: 1000 !important;
+                display: none !important;
+                visibility: hidden !important;
             }
             
             .embeddedServiceHelpButton .helpButton {
-                width: 60px !important;
-                height: 60px !important;
-                border-radius: 50% !important;
-                box-shadow: 0 4px 15px rgba(10, 92, 164, 0.3) !important;
-                transition: transform 0.2s ease !important;
-            }
-            
-            .embeddedServiceHelpButton .helpButton:hover {
-                transform: scale(1.1) !important;
-                box-shadow: 0 6px 20px rgba(10, 92, 164, 0.4) !important;
+                display: none !important;
+                visibility: hidden !important;
             }
             
             /* Ajustes específicos para iOS */
@@ -166,7 +156,7 @@
         <script type='text/javascript' src='https://service.force.com/embeddedservice/5.0/esw.min.js'></script>
         <script type='text/javascript'>
             var initESW = function(gslbBaseURL) {
-                embedded_svc.settings.displayHelpButton = true;
+                embedded_svc.settings.displayHelpButton = false; // Oculta o botão de ajuda
                 embedded_svc.settings.language = 'pt-BR';
 
                 // Configurações para melhorar a experiência do chat
@@ -178,12 +168,26 @@
                 // Configurações de chat dinâmico
                 embedded_svc.settings.targetElement = document.body;
                 embedded_svc.settings.devMode = false;
+                
+                // Configuração para abertura automática
+                embedded_svc.settings.autoOpenPostChat = true; // Abre automaticamente após inicialização
 
                 // Settings for Chat
                 embedded_svc.settings.chatbotAvatarImgURL = "https://carrefourservice.file.force.com/sfc/dist/version/renditionDownload?rendition=ORIGINAL_Png&versionId=068Hs00000nNkZ7&operationContex[...]";
 
                 embedded_svc.settings.enabledFeatures = ['LiveAgent'];
                 embedded_svc.settings.entryFeature = 'LiveAgent';
+                
+                // Event handlers para abertura automática
+                embedded_svc.addEventHandler("onChatRequestSuccess", function(data) {
+                    // Chat foi inicializado com sucesso
+                    console.log('Chat inicializado com sucesso');
+                });
+                
+                embedded_svc.addEventHandler("onChatEstablished", function(data) {
+                    // Conexão do chat estabelecida
+                    console.log('Conexão do chat estabelecida');
+                });
 
                 embedded_svc.init(
                     'https://carrefourservice.my.salesforce.com',
@@ -201,16 +205,15 @@
                     }
                 );
 
-                setTimeout(function() {
-                    embedded_svc.liveAgentAPI.startChat({
-                        directToAgentRouting: {
-                            buttonId: '573Hs000000rjW9',
-                            fallback: true
-                        },
-                        extraPrechatInfo: [],
-                        extraPrechatFormDetails: []
-                    });
-                }, 1000);
+                // Inicia o chat imediatamente após a inicialização
+                embedded_svc.liveAgentAPI.startChat({
+                    directToAgentRouting: {
+                        buttonId: '573Hs000000rjW9',
+                        fallback: true
+                    },
+                    extraPrechatInfo: [],
+                    extraPrechatFormDetails: []
+                });
             };
 
             function adjustChatSize() {
@@ -310,8 +313,15 @@
                     s.onload = function() {
                         initESW(null);
                         
-                        // Ajustar tamanho quando o chat carregar
-                        setTimeout(adjustChatSize, 2000);
+                        // Ajustar tamanho quando o chat carregar e forçar exibição
+                        setTimeout(function() {
+                            adjustChatSize();
+                            // Força a exibição do chat se não estiver visível
+                            var chatContainer = document.querySelector('.embeddedServiceSidebarForm');
+                            if (chatContainer && chatContainer.style.display === 'none') {
+                                chatContainer.style.display = 'block';
+                            }
+                        }, 2000);
                         
                         // Escutar mudanças no tamanho da janela e orientação
                         window.addEventListener('resize', adjustChatSize);
@@ -322,7 +332,14 @@
                     document.body.appendChild(s);
                 } else {
                     initESW('https://service.force.com');
-                    setTimeout(adjustChatSize, 2000);
+                    setTimeout(function() {
+                        adjustChatSize();
+                        // Força a exibição do chat se não estiver visível
+                        var chatContainer = document.querySelector('.embeddedServiceSidebarForm');
+                        if (chatContainer && chatContainer.style.display === 'none') {
+                            chatContainer.style.display = 'block';
+                        }
+                    }, 2000);
                     window.addEventListener('resize', adjustChatSize);
                     window.addEventListener('orientationchange', function() {
                         setTimeout(adjustChatSize, 300);
