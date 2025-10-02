@@ -301,25 +301,6 @@
                 });
             }
 
-            // Previne zoom no iOS em inputs
-            function preventIOSZoom() {
-                const addMaximumScaleToMetaViewport = () => {
-                    const el = document.querySelector('meta[name=viewport]');
-                    if (el !== null) {
-                        let content = el.getAttribute('content');
-                        let re = /maximum\-scale=[0-9\.]+/g;
-                        if (re.test(content)) {
-                            content = content.replace(re, 'maximum-scale=1.0');
-                        } else {
-                            content = [content, 'maximum-scale=1.0'].join(', ');
-                        }
-                        el.setAttribute('content', content);
-                    }
-                };
-
-                addMaximumScaleToMetaViewport();
-            }
-
             // Função para abrir o chat automaticamente
             function autoOpenChat() {
                 // Tenta clicar no botão de ajuda (mesmo oculto)
@@ -347,7 +328,6 @@
             }
 
             function pageLoaded() {
-                preventIOSZoom();
                 observeChatState();
                 
                 if (!window.embedded_svc) {
@@ -360,7 +340,7 @@
                         setTimeout(function() {
                             autoOpenChat();
                             adjustChatSize();
-                        }, 3000);
+                        }, 1000);
                         
                         // Escutar mudanças no tamanho da janela e orientação
                         window.addEventListener('resize', adjustChatSize);
@@ -374,7 +354,7 @@
                     setTimeout(function() {
                         autoOpenChat();
                         adjustChatSize();
-                    }, 3000);
+                    }, 1000);
                     window.addEventListener('resize', adjustChatSize);
                     window.addEventListener('orientationchange', function() {
                         setTimeout(adjustChatSize, 300);
