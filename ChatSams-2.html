@@ -1,0 +1,248 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chat Sams Club</title>
+    </head>
+    <body onload="pageLoaded()">
+        <!-- Container para o botão de chat -->
+        <div id="button_goes_here"></div>
+        <style type='text/css'>
+            /* Estilos básicos do botão de chat */
+            .embeddedServiceHelpButton .helpButton .uiButton {
+                background-color: #0A5CA4;
+                font-family: "Open Sans", sans-serif;
+            }
+            .embeddedServiceHelpButton .helpButton .uiButton:focus {
+                outline: 1px solid #0A5CA4;
+            }
+            
+            /* Estilos responsivos para o chat */
+            .embeddedServiceSidebar {
+                max-width: 100% !important;
+            }
+            
+            /* Mobile - dispositivos até 768px */
+            @media screen and (max-width: 768px) {
+                .embeddedServiceSidebar {
+                    width: 100% !important;
+                    height: 100% !important;
+                    max-height: 100vh !important;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                }
+                
+                .embeddedServiceSidebarHeader {
+                    padding: 1rem !important;
+                }
+                
+                .embeddedServiceSidebarForm {
+                    padding: 1rem !important;
+                }
+                
+                .embeddedServiceHelpButton .helpButton {
+                    width: 60px !important;
+                    height: 60px !important;
+                    margin: 10px !important;
+                }
+                
+                .embeddedServiceHelpButton .helpButton .uiButton {
+                    font-size: 14px !important;
+                    padding: 8px !important;
+                }
+                
+                .embeddedServiceLiveAgentChatInput {
+                    font-size: 16px !important; /* Evita zoom no iOS */
+                }
+            }
+            
+            /* Tablet - dispositivos entre 769px e 1024px */
+            @media screen and (min-width: 769px) and (max-width: 1024px) {
+                .embeddedServiceSidebar {
+                    width: 400px !important;
+                    height: 600px !important;
+                    max-height: 90vh !important;
+                }
+            }
+            
+            /* Desktop - dispositivos acima de 1024px */
+            @media screen and (min-width: 1025px) {
+                .embeddedServiceSidebar {
+                    width: 320px !important;
+                    height: 640px !important;
+                }
+            }
+            
+            /* Ajustes para orientação landscape em mobile */
+            @media screen and (max-width: 768px) and (orientation: landscape) {
+                .embeddedServiceSidebar {
+                    height: 100vh !important;
+                }
+            }
+            
+            /* Classe adicional para mobile */
+            .embeddedServiceSidebar.mobile-chat {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                max-width: 100% !important;
+                max-height: 100vh !important;
+                border-radius: 0 !important;
+                z-index: 9999 !important;
+            }
+            
+            /* Garante que o corpo da página não tenha scroll quando o chat estiver aberto em mobile */
+            body.chat-open-mobile {
+                overflow: hidden !important;
+                position: fixed !important;
+                width: 100% !important;
+            }
+        </style>
+
+        <script type='text/javascript' src='https://service.force.com/embeddedservice/5.0/esw.min.js'></script>
+        <script type='text/javascript'>
+            var initESW = function(gslbBaseURL) {
+                embedded_svc.settings.displayHelpButton = true; //Or false
+                embedded_svc.settings.language = 'pt-BR'; //For example, enter 'en' or 'en-US'
+                
+                // Configurações de responsividade
+                embedded_svc.settings.devMode = false;
+                embedded_svc.settings.targetElement = 'button_goes_here';
+                
+                // Configurações para dispositivos móveis
+                embedded_svc.settings.enableMobileCore = true;
+                embedded_svc.settings.autoOpenPostChat = false;
+                
+                // Textos personalizados
+                embedded_svc.settings.defaultMinimizedText = 'Chat Sams Club';
+                embedded_svc.settings.disabledMinimizedText = 'Chat Indisponível';
+                embedded_svc.settings.loadingText = 'Carregando...';
+                
+                //embedded_svc.settings.storageDomain = 'yourdomain.com'; //(Sets the domain for your deployment so that visitors can navigate subdomains during a chat session)
+
+                // Settings for Chat
+                embedded_svc.settings.chatbotAvatarImgURL = "https://carrefourservice.file.force.com/sfc/dist/version/renditionDownload?rendition=ORIGINAL_Png&versionId=068Hs00000nNkZ7&operationContext=DELIVERY&contentId=05THs00002zvlaF&page=0&d=/a/Hs000001VdSd/0vgl2KIIGUKxdPy6X0OvGyG5_nPEkxikG6QR7r2QGBo&oid=00DHs00000NDcMH&dpt=null&viewId=";        
+                //embedded_svc.settings.directToButtonRouting = function(prechatFormData) {
+                    // Dynamically changes the button ID based on what the visitor enters in the pre-chat form.
+                    // Returns a valid button ID.
+                //};
+                //embedded_svc.settings.prepopulatedPrechatFields = {}; //Sets the auto-population of pre-chat form fields
+                //embedded_svc.settings.fallbackRouting = []; //An array of button IDs, user IDs, or userId_buttonId
+                //embedded_svc.settings.offlineSupportMinimizedText = '...'; //(Defaults to Contact Us)
+
+                embedded_svc.settings.enabledFeatures = ['LiveAgent'];
+                embedded_svc.settings.entryFeature = 'LiveAgent';
+                
+                // Configurações adicionais de responsividade
+                embedded_svc.settings.chatbotAvatarImgURL = embedded_svc.settings.chatbotAvatarImgURL;
+                
+                // Callback para ajustar o layout em diferentes dispositivos
+                embedded_svc.addEventHandler("onChatRequestSuccess", function(data) {
+                    // Função executada quando o chat é carregado com sucesso
+                    adjustChatForMobile();
+                });
+                
+                embedded_svc.addEventHandler("onChatEstablished", function(data) {
+                    // Função executada quando a conexão do chat é estabelecida
+                    adjustChatForMobile();
+                });
+
+                embedded_svc.init(
+                    'https://carrefourservice.my.salesforce.com',
+                    'https://carrefourservice.my.salesforce-sites.com/',
+                    gslbBaseURL,
+                    '00DHs00000NDcMH',
+                    'Atendimento_Chat_Sams_Club',
+                    {
+                        baseLiveAgentContentURL: 'https://c.la3-c1-ia7.salesforceliveagent.com/content',
+                        deploymentId: '572Hs000000rZfr',
+                        buttonId: '573Hs000000rjW9',
+                        baseLiveAgentURL: 'https://d.la3-c1-ia7.salesforceliveagent.com/chat',
+                        eswLiveAgentDevName: 'Atendimento_Chat_Sams_Club',
+                        isOfflineSupportEnabled: false
+                    }
+                )
+
+                setTimeout(function() {
+                    embedded_svc.liveAgentAPI.startChat({
+                        directToAgentRouting: {
+                            buttonId: '573Hs000000rjW9',
+                            fallback: true
+                        },
+                        extraPrechatInfo: [],
+                        extraPrechatFormDetails: []
+                    });
+                }, 1000);
+
+                
+
+            };
+
+            // Função para ajustar o chat em dispositivos móveis
+            function adjustChatForMobile() {
+                // Detecta se é dispositivo móvel
+                var isMobile = window.innerWidth <= 768;
+                
+                if (isMobile) {
+                    // Ajusta o comportamento do chat em mobile
+                    var chatContainer = document.querySelector('.embeddedServiceSidebar');
+                    if (chatContainer) {
+                        // Adiciona classe para mobile
+                        chatContainer.classList.add('mobile-chat');
+                        
+                        // Previne scroll da página quando chat estiver aberto
+                        document.body.classList.add('chat-open-mobile');
+                        
+                        // Observer para detectar quando o chat é fechado
+                        var observer = new MutationObserver(function(mutations) {
+                            mutations.forEach(function(mutation) {
+                                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                                    var chatVisible = chatContainer.style.display !== 'none' && 
+                                                    !chatContainer.classList.contains('embeddedServiceSidebarMinimized');
+                                    
+                                    if (!chatVisible) {
+                                        document.body.classList.remove('chat-open-mobile');
+                                    } else {
+                                        document.body.classList.add('chat-open-mobile');
+                                    }
+                                }
+                            });
+                        });
+                        
+                        observer.observe(chatContainer, { 
+                            attributes: true, 
+                            attributeFilter: ['style', 'class'] 
+                        });
+                    }
+                }
+            }
+            
+            // Adiciona listener para mudanças de orientação/resize
+            window.addEventListener('resize', function() {
+                adjustChatForMobile();
+            });
+            
+            window.addEventListener('orientationchange', function() {
+                setTimeout(adjustChatForMobile, 100);
+            });
+
+            function pageLoaded() {
+                if (!window.embedded_svc) {
+                    var s = document.createElement('script');
+                    s.setAttribute('src', 'https://carrefourservice.my.salesforce.com/embeddedservice/5.0/esw.min.js');
+                    s.onload = function() {
+                        initESW(null);
+                        
+                    };
+                    document.body.appendChild(s);
+                } else {
+                    initESW('https://service.force.com')
+                }
+            }            
+        </script>
+    </body>
+</html>
