@@ -1,0 +1,334 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+    </head>
+    <body onload="pageLoaded()">
+        <style type='text/css'>
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            html, body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                height: 100%;
+                width: 100%;
+            }
+            
+            .embeddedServiceHelpButton .helpButton .uiButton {
+                background-color: #0A5CA4;
+                font-family: "Open Sans", sans-serif;
+            }
+            .embeddedServiceHelpButton .helpButton .uiButton:focus {
+                outline: 1px solid #0A5CA4;
+            }
+            
+            /* Estilos base do chat */
+            .embeddedServiceSidebarForm {
+                transition: all 0.3s ease-in-out !important;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+            }
+            
+            .embeddedServiceSidebarHeader {
+                background-color: #0A5CA4 !important;
+                padding: 15px !important;
+            }
+            
+            .embeddedServiceLiveAgentChatInputFooter {
+                padding: 10px !important;
+                background-color: #fff !important;
+            }
+            
+            .embeddedServiceLiveAgentChatInput {
+                min-height: 40px !important;
+                border-radius: 20px !important;
+                padding: 10px 15px !important;
+                font-size: 16px !important; /* Previne zoom no iOS */
+            }
+            
+            .embeddedServiceLiveAgentChatMessage {
+                margin: 8px 0 !important;
+                padding: 8px 12px !important;
+                border-radius: 15px !important;
+            }
+            
+            .embeddedServiceSidebarDialogState {
+                width: 100% !important;
+                height: 100% !important;
+            }
+            
+            /* Estilos para dispositivos móveis (iOS e Android) */
+            @media (max-width: 768px) {
+                body {
+                    position: fixed !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+                
+                .embeddedServiceSidebarForm {
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    height: -webkit-fill-available !important; /* Para iOS Safari */
+                    max-width: none !important;
+                    max-height: none !important;
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    border-radius: 0 !important;
+                    margin: 0 !important;
+                    z-index: 9999 !important;
+                }
+                
+                .embeddedServiceSidebarHeader {
+                    padding-top: env(safe-area-inset-top) !important; /* Suporte para notch do iPhone */
+                }
+                
+                .embeddedServiceLiveAgentChatInputFooter {
+                    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important; /* Espaço para botão home do iPhone */
+                }
+                
+                .embeddedServiceHelpButton {
+                    position: fixed !important;
+                    bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+                    right: 20px !important;
+                    z-index: 1000 !important;
+                }
+                
+                /* Scroll suave para mobile */
+                .embeddedServiceSidebarDialogState .dockableContainer {
+                    -webkit-overflow-scrolling: touch !important;
+                    overflow-y: auto !important;
+                }
+            }
+            
+            /* Estilos para tablets em orientação portrait */
+            @media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+                .embeddedServiceSidebarForm {
+                    width: 90vw !important;
+                    height: 90vh !important;
+                    max-width: 500px !important;
+                    max-height: none !important;
+                    right: 5vw !important;
+                    bottom: 5vh !important;
+                    position: fixed !important;
+                    border-radius: 15px !important;
+                }
+            }
+            
+            /* Estilos para desktop */
+            @media (min-width: 1025px) {
+                .embeddedServiceSidebarForm {
+                    width: 400px !important;
+                    height: 600px !important;
+                    max-width: 400px !important;
+                    max-height: 80vh !important;
+                    right: 20px !important;
+                    bottom: 20px !important;
+                    position: fixed !important;
+                    border-radius: 10px !important;
+                }
+            }
+            
+            /* Botão de ajuda */
+            .embeddedServiceHelpButton {
+                position: fixed !important;
+                bottom: 30px !important;
+                right: 30px !important;
+                z-index: 1000 !important;
+            }
+            
+            .embeddedServiceHelpButton .helpButton {
+                width: 60px !important;
+                height: 60px !important;
+                border-radius: 50% !important;
+                box-shadow: 0 4px 15px rgba(10, 92, 164, 0.3) !important;
+                transition: transform 0.2s ease !important;
+            }
+            
+            .embeddedServiceHelpButton .helpButton:hover {
+                transform: scale(1.1) !important;
+                box-shadow: 0 6px 20px rgba(10, 92, 164, 0.4) !important;
+            }
+            
+            /* Ajustes específicos para iOS */
+            @supports (-webkit-touch-callout: none) {
+                .embeddedServiceSidebarForm {
+                    height: -webkit-fill-available !important;
+                }
+            }
+        </style>
+
+        <script type='text/javascript' src='https://service.force.com/embeddedservice/5.0/esw.min.js'></script>
+        <script type='text/javascript'>
+            var initESW = function(gslbBaseURL) {
+                embedded_svc.settings.displayHelpButton = true;
+                embedded_svc.settings.language = 'pt-BR';
+
+                // Configurações para melhorar a experiência do chat
+                embedded_svc.settings.defaultMinimizedText = 'Chat Sams Club'; 
+                embedded_svc.settings.disabledMinimizedText = 'Chat Indisponível';
+                embedded_svc.settings.waitingStateBackgroundImgURL = '';
+                embedded_svc.settings.smallCompanyLogoImgURL = '';
+                
+                // Configurações de chat dinâmico
+                embedded_svc.settings.targetElement = document.body;
+                embedded_svc.settings.devMode = false;
+
+                // Settings for Chat
+                embedded_svc.settings.chatbotAvatarImgURL = "https://carrefourservice.file.force.com/sfc/dist/version/renditionDownload?rendition=ORIGINAL_Png&versionId=068Hs00000nNkZ7&operationContex[...]";
+
+                embedded_svc.settings.enabledFeatures = ['LiveAgent'];
+                embedded_svc.settings.entryFeature = 'LiveAgent';
+
+                embedded_svc.init(
+                    'https://carrefourservice.my.salesforce.com',
+                    'https://carrefourservice.my.salesforce-sites.com/',
+                    gslbBaseURL,
+                    '00DHs00000NDcMH',
+                    'Atendimento_Chat_Sams_Club',
+                    {
+                        baseLiveAgentContentURL: 'https://c.la3-c1-ia7.salesforceliveagent.com/content',
+                        deploymentId: '572Hs000000rZfr',
+                        buttonId: '573Hs000000rjW9',
+                        baseLiveAgentURL: 'https://d.la3-c1-ia7.salesforceliveagent.com/chat',
+                        eswLiveAgentDevName: 'Atendimento_Chat_Sams_Club',
+                        isOfflineSupportEnabled: false
+                    }
+                );
+
+                setTimeout(function() {
+                    embedded_svc.liveAgentAPI.startChat({
+                        directToAgentRouting: {
+                            buttonId: '573Hs000000rjW9',
+                            fallback: true
+                        },
+                        extraPrechatInfo: [],
+                        extraPrechatFormDetails: []
+                    });
+                }, 1000);
+            };
+
+            function adjustChatSize() {
+                const chatContainer = document.querySelector('.embeddedServiceSidebarForm');
+                if (chatContainer) {
+                    const screenWidth = window.innerWidth;
+                    const screenHeight = window.innerHeight;
+                    const isMobile = screenWidth <= 768;
+                    
+                    if (isMobile) {
+                        // Mobile: chat em tela cheia com suporte para iOS
+                        chatContainer.style.width = '100vw';
+                        chatContainer.style.height = '100vh';
+                        chatContainer.style.maxHeight = '100vh';
+                        chatContainer.style.right = '0px';
+                        chatContainer.style.bottom = '0px';
+                        chatContainer.style.top = '0px';
+                        chatContainer.style.left = '0px';
+                        chatContainer.style.borderRadius = '0px';
+                        chatContainer.style.position = 'fixed';
+                        
+                        // Previne scroll do body quando chat estiver aberto
+                        document.body.style.overflow = 'hidden';
+                        document.body.style.position = 'fixed';
+                        document.body.style.width = '100%';
+                        document.body.style.height = '100%';
+                    } else if (screenWidth <= 1024 && window.matchMedia("(orientation: portrait)").matches) {
+                        // Tablet em portrait
+                        chatContainer.style.width = Math.min(500, screenWidth * 0.9) + 'px';
+                        chatContainer.style.height = screenHeight * 0.9 + 'px';
+                        chatContainer.style.right = '5vw';
+                        chatContainer.style.bottom = '5vh';
+                        chatContainer.style.borderRadius = '15px';
+                    } else {
+                        // Desktop: chat como sidebar
+                        chatContainer.style.width = '400px';
+                        chatContainer.style.height = Math.min(600, screenHeight * 0.8) + 'px';
+                        chatContainer.style.right = '20px';
+                        chatContainer.style.bottom = '20px';
+                        chatContainer.style.borderRadius = '10px';
+                        
+                        // Restaura scroll do body
+                        document.body.style.overflow = '';
+                        document.body.style.position = '';
+                    }
+                }
+            }
+
+            // Detecta quando o chat é fechado para restaurar o scroll
+            function observeChatState() {
+                const observer = new MutationObserver(function(mutations) {
+                    const chatContainer = document.querySelector('.embeddedServiceSidebarForm');
+                    if (!chatContainer || chatContainer.style.display === 'none') {
+                        if (window.innerWidth <= 768) {
+                            document.body.style.overflow = '';
+                            document.body.style.position = '';
+                            document.body.style.width = '';
+                            document.body.style.height = '';
+                        }
+                    }
+                });
+                
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style', 'class']
+                });
+            }
+
+            // Previne zoom no iOS em inputs
+            function preventIOSZoom() {
+                const addMaximumScaleToMetaViewport = () => {
+                    const el = document.querySelector('meta[name=viewport]');
+                    if (el !== null) {
+                        let content = el.getAttribute('content');
+                        let re = /maximum\-scale=[0-9\.]+/g;
+                        if (re.test(content)) {
+                            content = content.replace(re, 'maximum-scale=1.0');
+                        } else {
+                            content = [content, 'maximum-scale=1.0'].join(', ');
+                        }
+                        el.setAttribute('content', content);
+                    }
+                };
+
+                addMaximumScaleToMetaViewport();
+            }
+
+            function pageLoaded() {
+                preventIOSZoom();
+                observeChatState();
+                
+                if (!window.embedded_svc) {
+                    var s = document.createElement('script');
+                    s.setAttribute('src', 'https://carrefourservice.my.salesforce.com/embeddedservice/5.0/esw.min.js');
+                    s.onload = function() {
+                        initESW(null);
+                        
+                        // Ajustar tamanho quando o chat carregar
+                        setTimeout(adjustChatSize, 2000);
+                        
+                        // Escutar mudanças no tamanho da janela e orientação
+                        window.addEventListener('resize', adjustChatSize);
+                        window.addEventListener('orientationchange', function() {
+                            setTimeout(adjustChatSize, 300);
+                        });
+                    };
+                    document.body.appendChild(s);
+                } else {
+                    initESW('https://service.force.com');
+                    setTimeout(adjustChatSize, 2000);
+                    window.addEventListener('resize', adjustChatSize);
+                    window.addEventListener('orientationchange', function() {
+                        setTimeout(adjustChatSize, 300);
+                    });
+                }
+            }            
+        </script>
+    </body>
+</html>
