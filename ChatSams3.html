@@ -156,7 +156,7 @@
         <script type='text/javascript' src='https://service.force.com/embeddedservice/5.0/esw.min.js'></script>
         <script type='text/javascript'>
             var initESW = function(gslbBaseURL) {
-                embedded_svc.settings.displayHelpButton = false; // Oculta o botão de ajuda
+                embedded_svc.settings.displayHelpButton = true; // Necessario para inicialização
                 embedded_svc.settings.language = 'pt-BR';
 
                 // Configurações para melhorar a experiência do chat
@@ -170,7 +170,7 @@
                 embedded_svc.settings.devMode = false;
                 
                 // Configuração para abertura automática
-                embedded_svc.settings.autoOpenPostChat = true; // Abre automaticamente após inicialização
+                embedded_svc.settings.autoOpenPostChat = true;
 
                 // Settings for Chat
                 embedded_svc.settings.chatbotAvatarImgURL = "https://carrefourservice.file.force.com/sfc/dist/version/renditionDownload?rendition=ORIGINAL_Png&versionId=068Hs00000nNkZ7&operationContex[...]";
@@ -179,9 +179,22 @@
                 embedded_svc.settings.entryFeature = 'LiveAgent';
                 
                 // Event handlers para abertura automática
+                embedded_svc.addEventHandler("onHelpButtonClick", function(data) {
+                    // Intercepta clique no botão (mesmo oculto)
+                    console.log('Botão de chat clicado');
+                });
+                
                 embedded_svc.addEventHandler("onChatRequestSuccess", function(data) {
                     // Chat foi inicializado com sucesso
                     console.log('Chat inicializado com sucesso');
+                    // Força abertura se não abriu automaticamente
+                    setTimeout(function() {
+                        var chatForm = document.querySelector('.embeddedServiceSidebarForm');
+                        if (chatForm && chatForm.style.display === 'none') {
+                            chatForm.style.display = 'block';
+                            chatForm.style.visibility = 'visible';
+                        }
+                    }, 500);
                 });
                 
                 embedded_svc.addEventHandler("onChatEstablished", function(data) {
@@ -205,15 +218,19 @@
                     }
                 );
 
-                // Inicia o chat imediatamente após a inicialização
-                embedded_svc.liveAgentAPI.startChat({
-                    directToAgentRouting: {
-                        buttonId: '573Hs000000rjW9',
-                        fallback: true
-                    },
-                    extraPrechatInfo: [],
-                    extraPrechatFormDetails: []
-                });
+                // Aguarda inicialização completa antes de abrir o chat
+                setTimeout(function() {
+                    if (embedded_svc.liveAgentAPI) {
+                        embedded_svc.liveAgentAPI.startChat({
+                            directToAgentRouting: {
+                                buttonId: '573Hs000000rjW9',
+                                fallback: true
+                            },
+                            extraPrechatInfo: [],
+                            extraPrechatFormDetails: []
+                        });
+                    }
+                }, 2000);
             };
 
             function adjustChatSize() {
@@ -303,6 +320,32 @@
                 addMaximumScaleToMetaViewport();
             }
 
+            // Função para abrir o chat automaticamente
+            function autoOpenChat() {
+                // Tenta clicar no botão de ajuda (mesmo oculto)
+                var helpButton = document.querySelector('.embeddedServiceHelpButton .helpButton .uiButton');
+                if (helpButton) {
+                    helpButton.click();
+                    console.log('Chat aberto automaticamente via clique no botão');
+                } else {
+                    // Se não encontrar o botão, tenta via API
+                    if (window.embedded_svc && embedded_svc.liveAgentAPI) {
+                        embedded_svc.liveAgentAPI.startChat({
+                            directToAgentRouting: {
+                                buttonId: '573Hs000000rjW9',
+                                fallback: true
+                            },
+                            extraPrechatInfo: [],
+                            extraPrechatFormDetails: []
+                        });
+                        console.log('Chat aberto automaticamente via API');
+                    } else {
+                        // Tenta novamente em 1 segundo
+                        setTimeout(autoOpenChat, 1000);
+                    }
+                }
+            }
+
             function pageLoaded() {
                 preventIOSZoom();
                 observeChatState();
@@ -313,15 +356,11 @@
                     s.onload = function() {
                         initESW(null);
                         
-                        // Ajustar tamanho quando o chat carregar e forçar exibição
+                        // Aguarda inicialização e abre o chat automaticamente
                         setTimeout(function() {
+                            autoOpenChat();
                             adjustChatSize();
-                            // Força a exibição do chat se não estiver visível
-                            var chatContainer = document.querySelector('.embeddedServiceSidebarForm');
-                            if (chatContainer && chatContainer.style.display === 'none') {
-                                chatContainer.style.display = 'block';
-                            }
-                        }, 2000);
+                        }, 3000);
                         
                         // Escutar mudanças no tamanho da janela e orientação
                         window.addEventListener('resize', adjustChatSize);
@@ -333,13 +372,9 @@
                 } else {
                     initESW('https://service.force.com');
                     setTimeout(function() {
+                        autoOpenChat();
                         adjustChatSize();
-                        // Força a exibição do chat se não estiver visível
-                        var chatContainer = document.querySelector('.embeddedServiceSidebarForm');
-                        if (chatContainer && chatContainer.style.display === 'none') {
-                            chatContainer.style.display = 'block';
-                        }
-                    }, 2000);
+                    }, 3000);
                     window.addEventListener('resize', adjustChatSize);
                     window.addEventListener('orientationchange', function() {
                         setTimeout(adjustChatSize, 300);
