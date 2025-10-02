@@ -145,6 +145,31 @@
                 visibility: hidden !important;
             }
             
+            /* Botão de fechar - Oculto */
+            .embeddedServiceSidebarHeader .minimizeButton,
+            .embeddedServiceSidebarHeader .closeButton,
+            .embeddedServiceSidebarMinimizedDefaultUI .restoreButton .minimizedContainer,
+            button[title="Fechar chat"],
+            button[title="Minimizar chat"],
+            .slds-button[title="Fechar"],
+            .slds-button[title="Minimizar"] {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+            
+            /* Oculta ícones de fechar */
+            .embeddedServiceIcon[data-icon="close"],
+            .embeddedServiceIcon[data-icon="minimize"] {
+                display: none !important;
+            }
+            
+            /* Ajusta header sem botão de fechar */
+            .embeddedServiceSidebarHeader {
+                padding-right: 15px !important;
+            }
+            
             /* Ajustes específicos para iOS */
             @supports (-webkit-touch-callout: none) {
                 .embeddedServiceSidebarForm {
@@ -200,6 +225,18 @@
                 embedded_svc.addEventHandler("onChatEstablished", function(data) {
                     // Conexão do chat estabelecida
                     console.log('Conexão do chat estabelecida');
+                });
+                
+                embedded_svc.addEventHandler("onChatEndedByChasitor", function(data) {
+                    // Chat encerrado pelo usuário
+                    console.log('Chat encerrado pelo usuário');
+                    window.onChatClose();
+                });
+                
+                embedded_svc.addEventHandler("onChatEndedByAgent", function(data) {
+                    // Chat encerrado pelo agente
+                    console.log('Chat encerrado pelo agente');
+                    window.onChatClose();
                 });
 
                 embedded_svc.init(
@@ -279,6 +316,31 @@
                 }
             }
 
+            // Função para remover botões de fechar dinamicamente
+            function hideCloseButtons() {
+                const closeSelectors = [
+                    '.embeddedServiceSidebarHeader .minimizeButton',
+                    '.embeddedServiceSidebarHeader .closeButton',
+                    'button[title="Fechar chat"]',
+                    'button[title="Minimizar chat"]',
+                    '.slds-button[title="Fechar"]',
+                    '.slds-button[title="Minimizar"]',
+                    '.embeddedServiceIcon[data-icon="close"]',
+                    '.embeddedServiceIcon[data-icon="minimize"]'
+                ];
+                
+                closeSelectors.forEach(selector => {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(element => {
+                        element.style.display = 'none';
+                        element.style.visibility = 'hidden';
+                        element.style.opacity = '0';
+                        element.style.pointerEvents = 'none';
+                        element.remove(); // Remove completamente do DOM
+                    });
+                });
+            }
+
             // Detecta quando o chat é fechado para restaurar o scroll
             function observeChatState() {
                 const observer = new MutationObserver(function(mutations) {
@@ -291,6 +353,9 @@
                             document.body.style.height = '';
                         }
                     }
+                    
+                    // Remove botões de fechar sempre que houver mudanças no DOM
+                    hideCloseButtons();
                 });
                 
                 observer.observe(document.body, {
@@ -299,6 +364,9 @@
                     attributes: true,
                     attributeFilter: ['style', 'class']
                 });
+                
+                // Remove botões de fechar a cada 1 segundo para garantir
+                setInterval(hideCloseButtons, 1000);
             }
 
             // Previne zoom no iOS em inputs
@@ -320,6 +388,56 @@
                 addMaximumScaleToMetaViewport();
             }
 
+            // Callback para React Native - define esta função globalmente
+            window.onChatClose = function() {
+                console.log('Chat sendo fechado - callback para React Native');
+                // Chama a função do React Native se disponível
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'CHAT_CLOSE',
+                        action: 'GO_BACK'
+                    }));
+                } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.reactNativeWebView) {
+                    // Para iOS
+                    window.webkit.messageHandlers.reactNativeWebView.postMessage({
+                        type: 'CHAT_CLOSE',
+                        action: 'GO_BACK'
+                    });
+                } else {
+                    console.log('React Native WebView não detectado - callback não enviado');
+                }
+            };
+            
+            // Função para interceptar tentativas de fechamento
+            function interceptCloseActions() {
+                // Observer para detectar cliques em botões de fechar
+                document.addEventListener('click', function(event) {
+                    const target = event.target;
+                    const isCloseButton = target.matches('.minimizeButton, .closeButton, button[title="Fechar chat"], button[title="Minimizar chat"], .slds-button[title="Fechar"], .slds-button[title="Minimizar"]') ||
+                                       target.closest('.minimizeButton, .closeButton, button[title="Fechar chat"], button[title="Minimizar chat"], .slds-button[title="Fechar"], .slds-button[title="Minimizar"]');
+                    
+                    if (isCloseButton) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        console.log('Tentativa de fechar chat interceptada');
+                        window.onChatClose();
+                        return false;
+                    }
+                }, true);
+                
+                // Intercepta ESC key
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape') {
+                        const chatVisible = document.querySelector('.embeddedServiceSidebarForm:not([style*="display: none"])');
+                        if (chatVisible) {
+                            event.preventDefault();
+                            console.log('ESC pressionado - interceptado');
+                            window.onChatClose();
+                        }
+                    }
+                });
+            }
+            
             // Função para abrir o chat automaticamente
             function autoOpenChat() {
                 // Tenta clicar no botão de ajuda (mesmo oculto)
@@ -349,6 +467,7 @@
             function pageLoaded() {
                 preventIOSZoom();
                 observeChatState();
+                interceptCloseActions();
                 
                 if (!window.embedded_svc) {
                     var s = document.createElement('script');
